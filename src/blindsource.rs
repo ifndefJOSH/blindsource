@@ -1,6 +1,8 @@
 use std::fmt::{write, Display};
+use nalgebra::{SVector, SMatrix};
+use ringbuf::{traits::*, HeapRb};
 
-#[derive(Display)]
+#[derive(Clone, PartialEq)]
 enum Density {
 	/// Supergaussian density of function $g = -2 tanh(y_t)$
 	Supergaussian,
@@ -12,17 +14,30 @@ enum Density {
 
 impl Density {
 	/// Maps the samples to a specific density function.
-	fn generate_density(&self, it: impl IntoIterator<f64>) -> impl IntoIterator<f64> {
+	fn generate_density(&self) -> Box<dyn Fn(f64) -> f64> {
 		match self {
-		   Self::Supergaussian => it.into_iter().map(|y: f64| -2.0 * y.tanh()),
-		   Self::Subgaussian => it.into_iter().map(|y: f64| -y.powi(3)),
-		   Self::SubgaussianHyperbolicTangent => it.into_iter().map(|y: f64| y.tanh() - y),
+		   Self::Supergaussian => Box::new(|y: f64| -2.0 * y.tanh()),
+		   Self::Subgaussian => Box::new(|y: f64| -y.powi(3)),
+		   Self::SubgaussianHyperbolicTangent => Box::new(|y: f64| y.tanh() - y),
 		}
 	}
 }
 
-struct Separator {
+struct Separator<const Channels: usize, const BufSize: usize> {
 	density: Density,
-	training_terations: u16,
+	ident: SMatrix<f64, C, C>,
+	zeros: SMatrix<f64, C, C>,
+	covariance: SMatrix<f64, C, C>, // B_k in the matlab code
+	mu: f64,
+	audio_buffer: HeapRb<Box<[f64;BufSize]>>,
+	training_iterations: u16,
+}
 
+impl Separator<const C: usize> {
+	fn new(dens: Density) -> Self {
+		Self {
+			density: dens,
+			ident:
+		}
+	}
 }
