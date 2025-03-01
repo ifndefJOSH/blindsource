@@ -33,7 +33,7 @@ struct Separator<const C: usize, const BufSize: usize> {
 	ident: SMatrix<sample, C, C>,
 	zeros: SMatrix<sample, C, C>,
 	covariance: SMatrix<sample, C, C>, // B_k in the matlab code
-	expectation: sample, // mu
+	mu: sample, // mu
 	audio_buffer: HeapRb<Vec<SVector<sample, C>>>,
 	training_iterations: u16,
 	// Input and output ports
@@ -45,7 +45,7 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 	fn new(
 		jack_client: &mut jack::Client,
 		dens: Density,
-		mu: sample,
+		mu_val: sample,
 		iters: u16,
 		ring_buffer_size: usize
 	) -> Self {
@@ -54,7 +54,7 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 			ident: SMatrix::identity(),
 			zeros: SMatrix::zeros(),
 			covariance: SMatrix::identity(),
-			expectation: mu,
+			mu: mu_val,
 			audio_buffer: HeapRb::<Vec<SVector<sample, C>>>::new(ring_buffer_size),
 			training_iterations: iters,
 			// Register the input ports with the client
@@ -93,11 +93,13 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 		assert!(heap_element.len() == BufSize);
 		self.audio_buffer.push_overwrite(heap_element);
 		// Do the training
+		for _ in 0..self.training_iterations {
 		for frame in self.audio_buffer.iter_mut() {
 			for channeled_samples in frame.iter_mut() {
 				let g = channeled_samples.map(&training_lambda);
-				// TODO
+				self.covariance += self.mu * (self.ident + g * channeled_samples.transpose()) * self.covariance;
 			}
+		}
 		}
 
 		// Continue to next frame
