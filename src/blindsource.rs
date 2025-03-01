@@ -1,6 +1,6 @@
 
 use jack::{jack_sys::jack_default_audio_sample_t, AudioIn, AudioOut, Port};
-use nalgebra::{SVector, SMatrix};
+use nalgebra::{Matrix, SMatrix, SVector};
 use ringbuf::{traits::{Consumer, RingBuffer}, HeapRb};
 
 type Sample = jack_default_audio_sample_t;
@@ -46,6 +46,8 @@ pub(crate) struct Separator<const C: usize> {
 	mu: Sample, // mu
 	audio_buffer: HeapRb<Vec<SVector<Sample, C>>>,
 	training_iterations: u16,
+	cov_reset_iters: usize,
+	cov_reset_at: usize,
 	// Input and output ports
 	input_ports: Vec<Port<AudioIn>>,
 	output_ports: Vec<Port<AudioOut>>,
@@ -72,6 +74,8 @@ impl<const C: usize> Separator<C> {
 			mu: mu_val,
 			audio_buffer: HeapRb::<Vec<SVector<Sample, C>>>::new(ring_bufsize),
 			training_iterations: iters,
+			cov_reset_iters: 0,
+			cov_reset_at: 25,
 			// Register the input ports with the client
 			input_ports: (0..C)
 				.map(|i|
@@ -102,6 +106,7 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		if !self.enabled {
 			return jack::Control::Continue;
 		}
+		// self.cov_reset_iters += 1
 		let training_lambda = self.density.generate_density();
 		// Get the current input and put them into the ringbuffer
 		let slices = self.input_ports.iter()
@@ -125,25 +130,34 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		// assert!(heap_element.len() == BufSize);
 		self.audio_buffer.push_overwrite(heap_element.clone());
 		// Do the training
+		// if self.cov_reset_iters >= self.cov_reset_at {
+		// 	self.covariance = SMatrix::identity();
+		//
+		// }
 		for _ in 0..self.training_iterations {
 			for frame in self.audio_buffer.iter_mut() {
 				for channeled_samples in frame.iter_mut() {
-					let y = self.covariance * *channeled_samples;
+					let mut y = self.covariance * *channeled_samples;
 					let y_mag = y.magnitude();
 					if y_mag == 0.0 {
 						continue;
 					}
 					// else {
-						// y /= y_mag;
+					// 	y /= y_mag;
 					// }
 					let g = y.map(&training_lambda);
+					println!("{:?}", g);
 					let update_factor = self.ident + g * y.transpose();
+					println!("{:?}", update_factor);
 					self.covariance =
 						(1.0 - self.mu) *
 						self.covariance + self.mu * update_factor * self.covariance;
+
 				}
 			}
 		}
+		// let d = self.covariance.norm();
+		// self.covariance /= d;
 		// println!("{:?}", self.covariance);
 		// Write the output buffer
 		let mut out_slices = self.output_ports.iter_mut()
@@ -151,7 +165,8 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 			.collect::<Vec<_>>(); // Again, we need the entire thing as a vector
 		for (i, col) in heap_element.into_iter().enumerate() {
 			// self.output_peaks[i] = 0.0;
-			for (j, sampl) in col.into_iter().enumerate() {
+			let y = self.covariance * col;
+			for (j, sampl) in y.into_iter().enumerate() {
 				// if *sampl > self.output_peaks[j] {
 				// 	self.output_peaks[j] = *sampl;
 				// }

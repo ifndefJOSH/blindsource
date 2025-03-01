@@ -37,42 +37,42 @@ fn main() {
 				match args.channels {
 					1 => Box::new(blindsource::Separator::<1>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
 					)),
 					2 => Box::new(blindsource::Separator::<2>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
 					)),
 					3 => Box::new(blindsource::Separator::<3>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
 					)),
 					4 => Box::new(blindsource::Separator::<4>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
 					)),
 					5 => Box::new(blindsource::Separator::<5>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
 					)),
 					6 => Box::new(blindsource::Separator::<5>::new(
 						&mut client,
-						blindsource::Density::Supergaussian,
+						blindsource::Density::Subgaussian,
 						args.aggressiveness,
 						args.training_iters,
 						args.ring_buffer_size
