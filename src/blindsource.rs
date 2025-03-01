@@ -8,7 +8,7 @@ use itertools::*;
 type sample = jack_default_audio_sample_t;
 
 #[derive(Clone, PartialEq)]
-enum Density {
+pub(crate) enum Density {
 	/// Supergaussian density of function $g = -2 tanh(y_t)$
 	Supergaussian,
 	/// Subgaussian density of function $g = -y_t^3$ (elementwise)
@@ -28,7 +28,11 @@ impl Density {
 	}
 }
 
-struct Separator<const C: usize, const BufSize: usize> {
+pub(crate) trait SeparatorTrait {
+	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control;
+}
+
+pub(crate) struct Separator<const C: usize> {
 	density: Density,
 	ident: SMatrix<sample, C, C>,
 	zeros: SMatrix<sample, C, C>,
@@ -41,13 +45,14 @@ struct Separator<const C: usize, const BufSize: usize> {
 	output_ports: Vec<Port<AudioOut>>,
 }
 
-impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
-	fn new(
+impl<const C: usize> Separator<C> {
+	/// Creates a new separator that automatically connects to a JACK client
+	pub(crate) fn new(
 		jack_client: &mut jack::Client,
 		dens: Density,
 		mu_val: sample,
 		iters: u16,
-		ring_buffer_size: usize
+		ring_bufsize: usize,
 	) -> Self {
 		Self {
 			density: dens,
@@ -55,7 +60,7 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 			zeros: SMatrix::zeros(),
 			covariance: SMatrix::identity(),
 			mu: mu_val,
-			audio_buffer: HeapRb::<Vec<SVector<sample, C>>>::new(ring_buffer_size),
+			audio_buffer: HeapRb::<Vec<SVector<sample, C>>>::new(ring_bufsize),
 			training_iterations: iters,
 			// Register the input ports with the client
 			input_ports: (0..C)
@@ -75,6 +80,9 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 				).collect::<Vec<_>>(),
 		}
 	}
+}
+
+impl<const C: usize> SeparatorTrait for Separator<C> {
 
 	/// Actually train on a single frame. Or, more acurately, re-train on the entire ring buffer
 	/// every time we get a frame. The more aggressively we train the better information we get.
@@ -92,7 +100,7 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 					.collect::<Vec<_>>())
 			})
 			.collect::<Vec<_>>();
-		assert!(heap_element.len() == BufSize);
+		// assert!(heap_element.len() == BufSize);
 		self.audio_buffer.push_overwrite(heap_element.clone());
 		// Do the training
 		for _ in 0..self.training_iterations {
