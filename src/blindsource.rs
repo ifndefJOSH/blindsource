@@ -138,10 +138,13 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 					// }
 					let g = y.map(&training_lambda);
 					let update_factor = self.ident + g * y.transpose();
-					self.covariance = (1.0 - self.mu) * self.covariance + self.mu * update_factor * self.covariance;
+					self.covariance =
+						(1.0 - self.mu) *
+						self.covariance + self.mu * update_factor * self.covariance;
 				}
 			}
 		}
+		// println!("{:?}", self.covariance);
 		// Write the output buffer
 		let mut out_slices = self.output_ports.iter_mut()
 			.map(|port| port.as_mut_slice(ps))
