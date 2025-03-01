@@ -41,7 +41,7 @@ pub(crate) struct Separator<const C: usize> {
 	enabled: bool,
 	density: Density,
 	ident: SMatrix<Sample, C, C>,
-	zeros: SMatrix<Sample, C, C>,
+	// zeros: SMatrix<Sample, C, C>,
 	covariance: SMatrix<Sample, C, C>, // B_k in the matlab code
 	mu: Sample, // mu
 	audio_buffer: HeapRb<Vec<SVector<Sample, C>>>,
@@ -67,7 +67,7 @@ impl<const C: usize> Separator<C> {
 			enabled: true,
 			density: dens,
 			ident: SMatrix::identity(),
-			zeros: SMatrix::zeros(),
+			// zeros: SMatrix::zeros(),
 			covariance: SMatrix::identity(),
 			mu: mu_val,
 			audio_buffer: HeapRb::<Vec<SVector<Sample, C>>>::new(ring_bufsize),
@@ -114,7 +114,8 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		// 	self.input_peaks[i] = max_sample;
 		// }
 		// let mut heap_element = Box::new([0.0 as sample; C]);
-		let heap_element = (0..slices[0].len())
+		let frame_size = slices[0].len();
+		let heap_element = (0..frame_size)
 			.map(|i| {
 				SVector::<Sample, C>::from_vec(slices.iter()
 					.map(|slice| slice[i])
@@ -127,23 +128,37 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		for _ in 0..self.training_iterations {
 			for frame in self.audio_buffer.iter_mut() {
 				for channeled_samples in frame.iter_mut() {
-					let g = channeled_samples.map(&training_lambda);
-					let update_factor = self.ident + g * channeled_samples.transpose();
-					self.covariance += self.mu * update_factor * self.covariance;
+					let y = self.covariance * *channeled_samples;
+					let y_mag = y.magnitude();
+					if y_mag == 0.0 {
+						continue;
+					}
+					// else {
+						// y /= y_mag;
+					// }
+					// println!("y: {:?}", y);
+					let g = y.map(&training_lambda);
+					// println!("g: {:?}", g);
+					let update_factor = self.ident + g * y.transpose();
+					// println!("uf: {:?}", update_factor);
+					self.covariance = (1.0 - self.mu) * self.covariance + self.mu * update_factor * self.covariance;
+					// println!("{:?}", self.covariance);
+					// println!("========================");
 				}
 			}
 		}
 		// Write the output buffer
 		let mut out_slices = self.output_ports.iter_mut()
 			.map(|port| port.as_mut_slice(ps))
-			.collect::<Vec<_>>(); // Again, we need the entire
+			.collect::<Vec<_>>(); // Again, we need the entire thing as a vector
 		for (i, col) in heap_element.into_iter().enumerate() {
 			// self.output_peaks[i] = 0.0;
-			for (j, sampl) in col.iter().enumerate() {
+			for (j, sampl) in col.into_iter().enumerate() {
 				// if *sampl > self.output_peaks[j] {
 				// 	self.output_peaks[j] = *sampl;
 				// }
-				out_slices[j][i] = *sampl;
+				// println!("({},{}), {}", j, i, *sampl);
+				out_slices[j][i] = *sampl * 3.0;
 			}
 		}
 
