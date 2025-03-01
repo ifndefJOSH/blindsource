@@ -1,0 +1,8 @@
+export component Monitor {
+	in property<float> magnitude;
+
+	Rectangle {
+		color: #5d7;
+		width: clamp(parent.width * magnitude, 0.0, parent.width);
+	}
+}
