@@ -7,6 +7,7 @@ use std::{io, sync::{Arc, Mutex}};
 
 mod blindsource;
 mod smoother;
+mod ui;
 
 /// A blind source separator of any number of channels
 #[derive(Parser, Debug)]

@@ -9,3 +9,4 @@ jack = "0.13.0"
 nalgebra = "0.33.2"
 ringbuf = "0.4.7"
 clap = { version = "4.5.20", features = ["derive"] }
+slint = "1.10.0"
