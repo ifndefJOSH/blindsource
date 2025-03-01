@@ -70,7 +70,7 @@ fn main() {
 						args.training_iters,
 						args.ring_buffer_size
 					)),
-					6 => Box::new(blindsource::Separator::<5>::new(
+					6 => Box::new(blindsource::Separator::<6>::new(
 						&mut client,
 						blindsource::Density::Subgaussian,
 						args.aggressiveness,

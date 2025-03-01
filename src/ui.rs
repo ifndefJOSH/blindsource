@@ -1,3 +1,5 @@
+use slint::ModelRc;
+
 use crate::blindsource::{SeparatorTrait, Density};
 use std::sync::{Arc, Mutex};
 
@@ -15,18 +17,32 @@ slint::slint!{
 
 	export component SoundPanel inherits Window {
 		min-width: 150px;
+
+		in property<[float]> magnitudes;
+		in property<int> num_channels: 6;
+
 		VerticalLayout {
 			spacing: 5px;
 			min-width: 150px;
-
-			in property<int> amount: 6;
-			for index in amount: Monitor {}
+			for index in num_channels: Monitor {
+				magnitude: magnitudes[index];
+			}
 		}
 	}
 
 	export component SonicSplitWindow inherits Window {
 		padding: 20px;
 		background: #101519; //000;
+
+		callback iterations-changed(int);
+		callback density-changed(string);
+
+		in property<[float]> magnitudes_in;
+		in property<[float]> magnitudes_out;
+		in property<int> num_channels: 6;
+		in property<int> training_iterations;
+		in property<string> density;
+
 		VerticalLayout {
 			// hackey vertical spacing
 			Text{
@@ -39,12 +55,16 @@ slint::slint!{
 				font-size: 40pt;
 				font-family: "Hack";
 				padding-top: 20px;
+				color: #fff;
 			}
 
 			HorizontalLayout {
 				spacing: 5px;
 				padding: 20px;
-				input_panel := SoundPanel {}
+				input_panel := SoundPanel {
+					magnitudes: magnitudes_in;
+					num_channels: root.num_channels;
+				}
 				Rectangle {
 					logo := Image {
 						source: @image-url("resources/icon.svg");
@@ -53,7 +73,10 @@ slint::slint!{
 					}
 					ta := TouchArea {}
 				}
-				output_panel := SoundPanel {}
+				output_panel := SoundPanel {
+					magnitudes: magnitudes_out;
+					num_channels: root.num_channels;
+				}
 			}
 
 			HorizontalLayout {
@@ -63,18 +86,24 @@ slint::slint!{
 					text: "Density";
 					vertical-alignment: center;
 				}
-				ComboBox {
+				density_box := ComboBox {
 					// id: densityBox;
 					// width: 100px;
-					model: ["Supergaussian", "Subgaussian", "Subgaussian (Hyperbolic Tangent"];
+					model: ["Supergaussian", "Subgaussian", "Subgaussian (Hyperbolic Tangent)"];
 					current_value: "Supergaussian";
+					selected(value) => {
+						root.density-changed(value);
+					}
 				}
 				Text {
 					text: "Training Iterations";
 					vertical-alignment: center;
 				}
-				SpinBox {
+				iterations_box := SpinBox {
 					value: 10;
+					edited(value) => {
+						root.iterations-changed(value);
+					}
 				}
 			}
 			HorizontalLayout {
@@ -92,15 +121,15 @@ slint::slint!{
 
 pub fn create_and_run_ui(demixer: &Arc<Mutex<Box<dyn SeparatorTrait>>>) {
 	let win = SonicSplitWindow::new().unwrap();
-	let combobox_callback = {
+	{
 		let demixer = Arc::clone(&demixer);
-		move |index| {
+		win.on_density_changed(move |name| {
 			match demixer.lock() {
 				Ok(mut owned_demixer) => {
-					match index {
-						0 => owned_demixer.set_density(Density::Supergaussian),
-						1 => owned_demixer.set_density(Density::Subgaussian),
-						2 => owned_demixer.set_density(Density::SubgaussianHyperbolicTangent),
+					match name.as_str() {
+						"Supergaussian" => owned_demixer.set_density(Density::Supergaussian),
+						"Subgaussian" => owned_demixer.set_density(Density::Subgaussian),
+						"Subgaussian (Hyperbolic Tangent)" => owned_demixer.set_density(Density::SubgaussianHyperbolicTangent),
 						_ => {
 							eprintln!("Invalid combobox index");
 						}
@@ -110,57 +139,37 @@ pub fn create_and_run_ui(demixer: &Arc<Mutex<Box<dyn SeparatorTrait>>>) {
 					eprintln!("Cannot update density! {}", err);
 				},
 			}
-		}
+		});
 	};
-	let density_to_index = {
-		let demixer = Arc::clone(&demixer);
-		move || -> usize {
-			match demixer.lock() {
-				Ok(owned_demixer) => {
-					match owned_demixer.get_density() {
-						Density::Supergaussian => 0,
-						Density::Subgaussian => 1,
-						Density::SubgaussianHyperbolicTangent => 2,
-					}
-				},
-				Err(err) => {
-					eprintln!("Cannot update density! {}", err);
-					0
-				},
-			}
-		};
 
-	};
 	// win.density_box().set_on_selected(combobox_callback);
-	let training_iters_callback = {
+	{
 		let demixer = Arc::clone(&demixer);
-		move |itrs: u16| {
-			match demixer.lock() {
-				Ok(mut owned_demixer) => {
-					owned_demixer.set_training_iters(itrs);
-				},
-				Err(err) => {
-					eprintln!("Cannot update density! {}", err);
-				},
+		win.on_iterations_changed(
+			move |itrs: i32| {
+				match demixer.lock() {
+					Ok(mut owned_demixer) => {
+						owned_demixer.set_training_iters(itrs as u16);
+					},
+					Err(err) => {
+						eprintln!("Cannot update density! {}", err);
+					},
+				}
 			}
-		}
-
+		);
 	};
 
-	let get_training_iters = {
-		let demixer = Arc::clone(&demixer);
-		move || -> u16 {
-			match demixer.lock() {
-				Ok(owned_demixer) => {
-					owned_demixer.get_training_iters()
-				},
-				Err(err) => {
-					eprintln!("Cannot update density! {}", err);
-					0
-				},
-			}
-		}
+	if let Ok(dem) = demixer.lock() {
+		win.set_num_channels(dem.get_num_channels());
+		let demo_slice: ModelRc<f32> = (0..dem.get_num_channels())
+			.map(|x| x as f32 * 0.1 + 0.1)
+			.collect::<Vec<_>>()
+			.as_slice()
+			.into();
+		win.set_magnitudes_in(demo_slice.clone());
+		win.set_magnitudes_out(demo_slice);
+		win.set_training_iterations(dem.get_training_iters() as i32);
+	}
 
-	};
 	win.run().unwrap();
 }

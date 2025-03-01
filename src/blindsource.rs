@@ -35,6 +35,7 @@ pub(crate) trait SeparatorTrait: Send {
 	fn get_density(&self) -> Density;
 	fn set_training_iters(&mut self, iters: u16);
 	fn get_training_iters(&self) -> u16;
+	fn get_num_channels(&self) -> i32;
 }
 
 pub(crate) struct Separator<const C: usize> {
@@ -202,5 +203,9 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 
 	fn get_training_iters(&self) -> u16 {
 	    self.training_iterations
+	}
+
+	fn get_num_channels(&self) -> i32 {
+		C as i32
 	}
 }
