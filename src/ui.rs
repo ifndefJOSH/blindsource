@@ -113,5 +113,19 @@ pub fn create_and_run_ui(demixer: &Arc<Mutex<Box<dyn SeparatorTrait>>>) {
 		}
 	};
 	// win.density_box().set_on_selected(combobox_callback);
+	let training_iters_callback = {
+		let demixer = Arc::clone(&demixer);
+		move |itrs: u16| {
+			match demixer.lock() {
+				Ok(mut owned_demixer) => {
+					owned_demixer.set_training_iters(itrs);
+				},
+				Err(err) => {
+					eprintln!("Cannot update density! {}", err);
+				},
+			}
+		}
+
+	};
 	win.run().unwrap();
 }
