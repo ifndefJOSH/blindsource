@@ -18,13 +18,13 @@ struct Args {
 	#[arg(short, long, default_value_t = 3)]
 	channels: usize,
 	/// Training iterations
-	#[arg(short, long, default_value_t = 15)]
+	#[arg(short, long, default_value_t = 1)]
 	training_iters: u16,
 	/// Agressiveness factor (mu)
 	#[arg(short, long, default_value_t = 0.01)]
 	aggressiveness: jack_default_audio_sample_t, // just keep this the same type as the sample
 	/// Ring buffer size
-	#[arg(short, long, default_value_t = 5)]
+	#[arg(short, long, default_value_t = 1)]
 	ring_buffer_size: usize,
 }
 

@@ -84,7 +84,7 @@ impl<const C: usize> Separator<C> {
 			output_ports: (0..C)
 				.map(|i|
 					jack_client.register_port(
-						&format!("input_{}", i),
+						&format!("output{}", i),
 						jack::AudioOut::default()
 					).unwrap()
 				).collect::<Vec<_>>(),
@@ -136,14 +136,9 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 					// else {
 						// y /= y_mag;
 					// }
-					// println!("y: {:?}", y);
 					let g = y.map(&training_lambda);
-					// println!("g: {:?}", g);
 					let update_factor = self.ident + g * y.transpose();
-					// println!("uf: {:?}", update_factor);
 					self.covariance = (1.0 - self.mu) * self.covariance + self.mu * update_factor * self.covariance;
-					// println!("{:?}", self.covariance);
-					// println!("========================");
 				}
 			}
 		}
@@ -157,8 +152,9 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 				// if *sampl > self.output_peaks[j] {
 				// 	self.output_peaks[j] = *sampl;
 				// }
-				// println!("({},{}), {}", j, i, *sampl);
-				out_slices[j][i] = *sampl * 3.0;
+				let val_to_write = *sampl * 3.0;
+				// println!("({},{}), {}", j, i, val_to_write);
+				out_slices[j][i] = val_to_write;
 			}
 		}
 
