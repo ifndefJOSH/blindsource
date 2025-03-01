@@ -107,12 +107,12 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		let slices = self.input_ports.iter()
 			.map(|port| port.as_slice(ps))
 			.collect::<Vec<_>>();
-		for (i, max_sample) in slices.iter()
-			.map(|slice| slice.iter().fold(0.0, |mx, &val|
-					if val > mx { val } else { mx }))
-			.enumerate() {
-			self.input_peaks[i] = max_sample;
-		}
+		// for (i, max_sample) in slices.iter()
+		// 	.map(|slice| slice.iter().fold(0.0, |mx, &val|
+		// 			if val > mx { val } else { mx }))
+		// 	.enumerate() {
+		// 	self.input_peaks[i] = max_sample;
+		// }
 		// let mut heap_element = Box::new([0.0 as sample; C]);
 		let heap_element = (0..slices[0].len())
 			.map(|i| {
@@ -138,11 +138,11 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 			.map(|port| port.as_mut_slice(ps))
 			.collect::<Vec<_>>(); // Again, we need the entire
 		for (i, col) in heap_element.into_iter().enumerate() {
-			self.output_peaks[i] = 0.0;
+			// self.output_peaks[i] = 0.0;
 			for (j, sampl) in col.iter().enumerate() {
-				if *sampl > self.output_peaks[j] {
-					self.output_peaks[j] = *sampl;
-				}
+				// if *sampl > self.output_peaks[j] {
+				// 	self.output_peaks[j] = *sampl;
+				// }
 				out_slices[j][i] = *sampl;
 			}
 		}

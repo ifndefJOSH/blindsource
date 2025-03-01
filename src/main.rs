@@ -82,12 +82,12 @@ fn main() {
 			)
 		);
 		// The callback handled on each frame of audio
-		let pc = register_jack_callback(shared_separator);
+		let pc = register_jack_callback(shared_separator.clone());
 		let process = jack::contrib::ClosureProcessHandler::new(pc);
 		// Activate the client
 		let active_client = client.activate_async((), process).unwrap();
 
-		create_and_run_ui();
+		create_and_run_ui(&shared_separator);
 
 		if let Err(err) = active_client.deactivate() {
 			eprintln!("JACK exited with error: {err}");
@@ -100,11 +100,12 @@ fn register_jack_callback(demixer: Arc<Mutex<Box<dyn blindsource::SeparatorTrait
 	let process_callback = {
 		let demixer = Arc::clone(&demixer);
 		move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
-			if let Ok(mut owned_demixer) = demixer.lock() {
-				owned_demixer.train(ps)
-			} else {
-				eprintln!("Missed frame!");
-				jack::Control::Continue
+			match demixer.lock() {
+			    Ok(mut owned_demixer) => owned_demixer.train(ps),
+				Err(err) => {
+					eprintln!("Missed frame! {}", err);
+					jack::Control::Continue
+				},
 			}
 		}
 	};
