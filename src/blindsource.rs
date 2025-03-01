@@ -76,6 +76,8 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 		}
 	}
 
+	/// Actually train on a single frame. Or, more acurately, re-train on the entire ring buffer
+	/// every time we get a frame. The more aggressively we train the better information we get.
 	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control {
 		let training_lambda = self.density.generate_density();
 		// Get the current input and put them into the ringbuffer
@@ -91,15 +93,25 @@ impl<const C: usize, const BufSize: usize> Separator<C, BufSize> {
 			})
 			.collect::<Vec<_>>();
 		assert!(heap_element.len() == BufSize);
-		self.audio_buffer.push_overwrite(heap_element);
+		self.audio_buffer.push_overwrite(heap_element.clone());
 		// Do the training
 		for _ in 0..self.training_iterations {
-		for frame in self.audio_buffer.iter_mut() {
-			for channeled_samples in frame.iter_mut() {
-				let g = channeled_samples.map(&training_lambda);
-				self.covariance += self.mu * (self.ident + g * channeled_samples.transpose()) * self.covariance;
+			for frame in self.audio_buffer.iter_mut() {
+				for channeled_samples in frame.iter_mut() {
+					let g = channeled_samples.map(&training_lambda);
+					let update_factor = self.ident + g * channeled_samples.transpose();
+					self.covariance += self.mu * update_factor * self.covariance;
+				}
 			}
 		}
+		// Write the output buffer
+		let mut out_slices = self.output_ports.iter_mut()
+			.map(|port| port.as_mut_slice(ps))
+			.collect::<Vec<_>>(); // Again, we need the entire
+		for (i, col) in heap_element.into_iter().enumerate() {
+			for (j, sampl) in col.iter().enumerate() {
+				out_slices[j][i] = *sampl;
+			}
 		}
 
 		// Continue to next frame
