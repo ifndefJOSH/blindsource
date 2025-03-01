@@ -3,7 +3,7 @@ use jack::{jack_sys::jack_default_audio_sample_t, AudioIn, AudioOut, Port};
 use nalgebra::{SVector, SMatrix};
 use ringbuf::{traits::{Consumer, RingBuffer}, HeapRb};
 
-type sample = jack_default_audio_sample_t;
+type Sample = jack_default_audio_sample_t;
 
 #[derive(Clone, PartialEq)]
 pub(crate) enum Density {
@@ -17,11 +17,11 @@ pub(crate) enum Density {
 
 impl Density {
 	/// Maps the samples to a specific density function.
-	fn generate_density(&self) -> Box<dyn Fn(sample) -> sample> {
+	fn generate_density(&self) -> Box<dyn Fn(Sample) -> Sample> {
 		match self {
-		   Self::Supergaussian => Box::new(|y: sample| -2.0 * y.tanh()),
-		   Self::Subgaussian => Box::new(|y: sample| -y.powi(3)),
-		   Self::SubgaussianHyperbolicTangent => Box::new(|y: sample| y.tanh() - y),
+		   Self::Supergaussian => Box::new(|y: Sample| -2.0 * y.tanh()),
+		   Self::Subgaussian => Box::new(|y: Sample| -y.powi(3)),
+		   Self::SubgaussianHyperbolicTangent => Box::new(|y: Sample| y.tanh() - y),
 		}
 	}
 }
@@ -40,11 +40,11 @@ pub(crate) trait SeparatorTrait: Send {
 pub(crate) struct Separator<const C: usize> {
 	enabled: bool,
 	density: Density,
-	ident: SMatrix<sample, C, C>,
-	zeros: SMatrix<sample, C, C>,
-	covariance: SMatrix<sample, C, C>, // B_k in the matlab code
-	mu: sample, // mu
-	audio_buffer: HeapRb<Vec<SVector<sample, C>>>,
+	ident: SMatrix<Sample, C, C>,
+	zeros: SMatrix<Sample, C, C>,
+	covariance: SMatrix<Sample, C, C>, // B_k in the matlab code
+	mu: Sample, // mu
+	audio_buffer: HeapRb<Vec<SVector<Sample, C>>>,
 	training_iterations: u16,
 	// Input and output ports
 	input_ports: Vec<Port<AudioIn>>,
@@ -56,7 +56,7 @@ impl<const C: usize> Separator<C> {
 	pub(crate) fn new(
 		jack_client: &mut jack::Client,
 		dens: Density,
-		mu_val: sample,
+		mu_val: Sample,
 		iters: u16,
 		ring_bufsize: usize,
 	) -> Self {
@@ -67,7 +67,7 @@ impl<const C: usize> Separator<C> {
 			zeros: SMatrix::zeros(),
 			covariance: SMatrix::identity(),
 			mu: mu_val,
-			audio_buffer: HeapRb::<Vec<SVector<sample, C>>>::new(ring_bufsize),
+			audio_buffer: HeapRb::<Vec<SVector<Sample, C>>>::new(ring_bufsize),
 			training_iterations: iters,
 			// Register the input ports with the client
 			input_ports: (0..C)
@@ -105,7 +105,7 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		// let mut heap_element = Box::new([0.0 as sample; C]);
 		let heap_element = (0..slices[0].len())
 			.map(|i| {
-				SVector::<sample, C>::from_vec(slices.iter()
+				SVector::<Sample, C>::from_vec(slices.iter()
 					.map(|slice| slice[i])
 					.collect::<Vec<_>>())
 			})
