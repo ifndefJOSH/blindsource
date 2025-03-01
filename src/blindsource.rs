@@ -137,7 +137,7 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 		for _ in 0..self.training_iterations {
 			for frame in self.audio_buffer.iter_mut() {
 				for channeled_samples in frame.iter_mut() {
-					let mut y = self.covariance * *channeled_samples;
+					let y = self.covariance * *channeled_samples;
 					let y_mag = y.magnitude();
 					if y_mag == 0.0 {
 						continue;
