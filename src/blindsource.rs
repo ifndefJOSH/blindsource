@@ -32,8 +32,11 @@ pub(crate) trait SeparatorTrait: Send {
 	/// Trains based on the current frame of audio
 	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control;
 	fn set_enabled(&mut self, enabled: bool);
+	fn is_enabled(&self) -> bool;
 	fn set_density(&mut self, density: Density);
+	fn get_density(&self) -> Density;
 	fn set_training_iters(&mut self, iters: u16);
+	fn get_training_iters(&self) -> u16;
 }
 
 pub(crate) struct Separator<const C: usize> {
@@ -139,11 +142,23 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 	    self.enabled = enabled;
 	}
 
+	fn is_enabled(&self) -> bool {
+		self.enabled
+	}
+
 	fn set_density(&mut self, density: Density) {
 	    self.density = density
 	}
 
+	fn get_density(&self) -> Density {
+		self.density.clone()
+	}
+
 	fn set_training_iters(&mut self, iters: u16) {
 	    self.training_iterations = iters;
+	}
+
+	fn get_training_iters(&self) -> u16 {
+	    self.training_iterations
 	}
 }
