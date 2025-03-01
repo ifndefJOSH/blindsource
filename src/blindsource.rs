@@ -66,7 +66,7 @@ impl<const C: usize> Separator<C> {
 			input_ports: (0..C)
 				.map(|i|
 					jack_client.register_port(
-						&format!("input_{}", i),
+						&format!("input{}", i),
 						jack::AudioIn::default()
 					).unwrap()
 				).collect::<Vec<_>>(),
