@@ -112,6 +112,25 @@ pub fn create_and_run_ui(demixer: &Arc<Mutex<Box<dyn SeparatorTrait>>>) {
 			}
 		}
 	};
+	let density_to_index = {
+		let demixer = Arc::clone(&demixer);
+		move || -> usize {
+			match demixer.lock() {
+				Ok(owned_demixer) => {
+					match owned_demixer.get_density() {
+						Density::Supergaussian => 0,
+						Density::Subgaussian => 1,
+						Density::SubgaussianHyperbolicTangent => 2,
+					}
+				},
+				Err(err) => {
+					eprintln!("Cannot update density! {}", err);
+					0
+				},
+			}
+		};
+
+	};
 	// win.density_box().set_on_selected(combobox_callback);
 	let training_iters_callback = {
 		let demixer = Arc::clone(&demixer);
@@ -122,6 +141,22 @@ pub fn create_and_run_ui(demixer: &Arc<Mutex<Box<dyn SeparatorTrait>>>) {
 				},
 				Err(err) => {
 					eprintln!("Cannot update density! {}", err);
+				},
+			}
+		}
+
+	};
+
+	let get_training_iters = {
+		let demixer = Arc::clone(&demixer);
+		move || -> u16 {
+			match demixer.lock() {
+				Ok(owned_demixer) => {
+					owned_demixer.get_training_iters()
+				},
+				Err(err) => {
+					eprintln!("Cannot update density! {}", err);
+					0
 				},
 			}
 		}
