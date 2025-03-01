@@ -26,11 +26,19 @@ slint::slint!{
 			HorizontalLayout {
 				input_panel := SoundPanel {}
 				Rectangle {
-					logo := Image {}
+					logo := Image {
+						source: @image-url("resources/full_logo.svg");
+					}
 					ta := TouchArea {}
 				}
 				output_panel := SoundPanel {}
 			}
 		}
 	}
+}
+
+pub fn create_and_run_ui() {
+	let win = SonicSplitWindow::new().unwrap();
+
+	win.run().unwrap();
 }

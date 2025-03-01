@@ -2,6 +2,7 @@
 
 use clap::Parser;
 use jack::jack_sys::jack_default_audio_sample_t;
+use ui::{create_and_run_ui};
 use core::panic;
 use std::{io, sync::{Arc, Mutex}};
 
@@ -29,6 +30,7 @@ struct Args {
 
 fn main() {
 	let args = Args::parse();
+
 	if let Ok((mut client, _status)) = jack::Client::new("SonicSplit", jack::ClientOptions::default()) {
 		let shared_separator: Arc<Mutex<Box<dyn blindsource::SeparatorTrait>>> = Arc::new(
 			Mutex::new(
@@ -84,10 +86,8 @@ fn main() {
 		let process = jack::contrib::ClosureProcessHandler::new(pc);
 		// Activate the client
 		let active_client = client.activate_async((), process).unwrap();
-		// Wait for user input to quit
-		println!("Press enter/return to quit...");
-		let mut user_input = String::new();
-		io::stdin().read_line(&mut user_input).ok();
+
+		create_and_run_ui();
 
 		if let Err(err) = active_client.deactivate() {
 			eprintln!("JACK exited with error: {err}");
