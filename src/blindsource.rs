@@ -29,10 +29,15 @@ impl Density {
 }
 
 pub(crate) trait SeparatorTrait: Send {
+	/// Trains based on the current frame of audio
 	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control;
+	fn set_enabled(&mut self, enabled: bool);
+	fn set_density(&mut self, density: Density);
+	fn set_training_iters(&mut self, iters: u16);
 }
 
 pub(crate) struct Separator<const C: usize> {
+	enabled: bool,
 	density: Density,
 	ident: SMatrix<sample, C, C>,
 	zeros: SMatrix<sample, C, C>,
@@ -55,6 +60,7 @@ impl<const C: usize> Separator<C> {
 		ring_bufsize: usize,
 	) -> Self {
 		Self {
+			enabled: true,
 			density: dens,
 			ident: SMatrix::identity(),
 			zeros: SMatrix::zeros(),
@@ -87,6 +93,9 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 	/// Actually train on a single frame. Or, more acurately, re-train on the entire ring buffer
 	/// every time we get a frame. The more aggressively we train the better information we get.
 	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control {
+		if !self.enabled {
+			return jack::Control::Continue;
+		}
 		let training_lambda = self.density.generate_density();
 		// Get the current input and put them into the ringbuffer
 		let slices = self.input_ports.iter()
@@ -124,5 +133,17 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 
 		// Continue to next frame
 		jack::Control::Continue
+	}
+
+	fn set_enabled(&mut self, enabled: bool) {
+	    self.enabled = enabled;
+	}
+
+	fn set_density(&mut self, density: Density) {
+	    self.density = density
+	}
+
+	fn set_training_iters(&mut self, iters: u16) {
+	    self.training_iterations = iters;
 	}
 }

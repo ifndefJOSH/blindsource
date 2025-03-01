@@ -3,7 +3,7 @@
 use clap::Parser;
 use jack::jack_sys::jack_default_audio_sample_t;
 use core::panic;
-use std::{process::exit, sync::{Arc, Mutex}};
+use std::{io, process::exit, sync::{Arc, Mutex}};
 
 mod blindsource;
 
@@ -82,6 +82,14 @@ fn main() {
 		let process = jack::contrib::ClosureProcessHandler::new(pc);
 		// Activate the client
 		let active_client = client.activate_async((), process).unwrap();
+		// Wait for user input to quit
+		println!("Press enter/return to quit...");
+		let mut user_input = String::new();
+		io::stdin().read_line(&mut user_input).ok();
+
+		if let Err(err) = active_client.deactivate() {
+			eprintln!("JACK exited with error: {err}");
+		};
 	}
 }
 
