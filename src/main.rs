@@ -3,7 +3,7 @@
 use clap::Parser;
 use jack::jack_sys::jack_default_audio_sample_t;
 use core::panic;
-use std::{io, process::exit, sync::{Arc, Mutex}};
+use std::{io, sync::{Arc, Mutex}};
 
 mod blindsource;
 

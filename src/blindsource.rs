@@ -1,9 +1,7 @@
-use std::fmt::format;
 
 use jack::{jack_sys::jack_default_audio_sample_t, AudioIn, AudioOut, Port};
 use nalgebra::{SVector, SMatrix};
 use ringbuf::{traits::{Consumer, RingBuffer}, HeapRb};
-use itertools::*;
 
 type sample = jack_default_audio_sample_t;
 
