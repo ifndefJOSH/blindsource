@@ -14,17 +14,19 @@ slint::slint!{
 	}
 
 	export component SoundPanel inherits Window {
+		min-width: 150px;
 		VerticalLayout {
 			spacing: 5px;
+			min-width: 150px;
 
-			in property<float> amount: 10;
+			in property<int> amount: 6;
 			for index in amount: Monitor {}
 		}
 	}
 
 	export component SonicSplitWindow inherits Window {
 		padding: 20px;
-		background: #000;
+		background: #101519; //000;
 		VerticalLayout {
 			// hackey vertical spacing
 			Text{
@@ -74,6 +76,15 @@ slint::slint!{
 				SpinBox {
 					value: 10;
 				}
+			}
+			HorizontalLayout {
+				Text {
+					text: "Made by ifndefJOSH/kernelpanic and CodeTriangle/trongle";
+					vertical-alignment: center;
+					horizontal-alignment: center;
+					font-size: 8px;
+				}
+				padding: 5px;
 			}
 		}
 	}
