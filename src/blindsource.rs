@@ -146,9 +146,9 @@ impl<const C: usize> SeparatorTrait for Separator<C> {
 					// 	y /= y_mag;
 					// }
 					let g = y.map(&training_lambda);
-					println!("{:?}", g);
+					// println!("{:?}", g);
 					let update_factor = self.ident + g * y.transpose();
-					println!("{:?}", update_factor);
+					// println!("{:?}", update_factor);
 					self.covariance =
 						(1.0 - self.mu) *
 						self.covariance + self.mu * update_factor * self.covariance;
