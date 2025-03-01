@@ -28,7 +28,7 @@ impl Density {
 	}
 }
 
-pub(crate) trait SeparatorTrait {
+pub(crate) trait SeparatorTrait: Send {
 	fn train(&mut self, ps: &jack::ProcessScope) -> jack::Control;
 }
 

@@ -77,5 +77,26 @@ fn main() {
 				}
 			)
 		);
+		// The callback handled on each frame of audio
+		let pc = register_jack_callback(shared_separator);
+		let process = jack::contrib::ClosureProcessHandler::new(pc);
+		// Activate the client
+		let active_client = client.activate_async((), process).unwrap();
 	}
+}
+
+fn register_jack_callback(demixer: Arc<Mutex<Box<dyn blindsource::SeparatorTrait>>>)
+	-> impl FnMut(&jack::Client, &jack::ProcessScope) -> jack::Control  {
+	let process_callback = {
+		let demixer = Arc::clone(&demixer);
+		move |_: &jack::Client, ps: &jack::ProcessScope| -> jack::Control {
+			if let Ok(mut owned_demixer) = demixer.lock() {
+				owned_demixer.train(ps)
+			} else {
+				eprintln!("Missed frame!");
+				jack::Control::Continue
+			}
+		}
+	};
+	process_callback
 }
